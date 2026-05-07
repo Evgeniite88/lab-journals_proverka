@@ -548,20 +548,13 @@ async function openJournal(journal) {
 }
 
 async function loadStatusMap(journal) {
-  try {
-    const r = await api('lists.field.get', {
-      IBLOCK_TYPE_ID:  'lists_socnet',
-      IBLOCK_ID:       journal.id,
-      SOCNET_GROUP_ID: GROUP_ID,
-      FIELD_ID:        journal.reviewStatus,
-    });
-    const field = Object.values(r.result || {})[0] || {};
-    const display = field.DISPLAY_VALUES_FORM || {};
-    statusMap = {};
-    for (const [id, val] of Object.entries(display)) {
-      statusMap[val] = id;
-    }
-  } catch(e) { statusMap = {}; }
+  // ID вариантов жёстко прошиты (получены через fix_status_values.py)
+  const STATIC_STATUS_MAP = {
+    47: { 'Проверено': '75', 'Замечания': '81' },
+    48: { 'Проверено': '76', 'Замечания': '82' },
+    49: { 'Проверено': '77', 'Замечания': '83' },
+  };
+  statusMap = STATIC_STATUS_MAP[journal.id] || {};
 }
 
 async function loadEntries() {
