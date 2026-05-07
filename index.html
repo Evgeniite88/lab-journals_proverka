@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Проверка журналов</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg:        #f0f2f5;
+    --surface:   #ffffff;
+    --surface2:  #f7f8fa;
+    --border:    #e2e6ea;
+    --primary:   #2563eb;
+    --primary-h: #1d4ed8;
+    --success:   #16a34a;
+    --success-bg:#dcfce7;
+    --warn:      #d97706;
+    --warn-bg:   #fef3c7;
+    --danger:    #dc2626;
+    --danger-bg: #fee2e2;
+    --text:      #111827;
+    --text-2:    #6b7280;
+    --text-3:    #9ca3af;
+    --radius:    10px;
+    --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Golos Text', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .app { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 20px;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header p  { font-size: 13px; color: var(--text-2); }
+  .user-badge {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 12px 6px 6px;
+    font-size: 13px; font-weight: 500;
+  }
+  .user-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .card-body  { padding: 20px; }
+
+  /* ── Journal selector ── */
+  .journal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .journal-btn {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: all .15s;
+    position: relative;
+  }
+  .journal-btn:hover  { border-color: var(--primary); background: #eff6ff; }
+  .journal-btn.active { border-color: var(--primary); background: #eff6ff; }
+  .journal-btn-name   { font-weight: 600; font-size: 14px; margin-bottom: 6px; line-height: 1.3; }
+  .journal-btn-meta   { font-size: 12px; color: var(--text-2); }
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; border-radius: 10px;
+    font-size: 11px; font-weight: 700; padding: 0 6px;
+  }
+  .badge-warn    { background: var(--warn-bg);    color: var(--warn); }
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-neutral { background: var(--border);     color: var(--text-2); }
+  .journal-badge {
+    position: absolute; top: 12px; right: 12px;
+  }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .toolbar-left  { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 7px; font-size: 13px;
+    font-weight: 600; cursor: pointer; border: 1px solid transparent;
+    transition: all .15s; font-family: inherit;
+  }
+  .btn-primary  { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover  { background: var(--primary-h); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-outline  { background: #fff; color: var(--text); border-color: var(--border); }
+  .btn-outline:hover  { border-color: var(--primary); color: var(--primary); }
+  .btn-success  { background: var(--success); color: #fff; }
+  .btn-success:hover  { background: #15803d; }
+  .btn-danger   { background: var(--danger);  color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ── Filter tabs ── */
+  .filter-tabs { display: flex; gap: 4px; }
+  .filter-tab  {
+    padding: 5px 12px; border-radius: 6px; font-size: 12px;
+    font-weight: 600; cursor: pointer; border: 1px solid transparent;
+    color: var(--text-2); background: transparent; font-family: inherit;
+    transition: all .15s;
+  }
+  .filter-tab:hover  { background: var(--border); color: var(--text); }
+  .filter-tab.active { background: var(--primary); color: #fff; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    background: var(--surface2); text-align: left;
+    padding: 10px 14px; font-size: 12px; font-weight: 600;
+    color: var(--text-2); text-transform: uppercase; letter-spacing: .04em;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  td {
+    padding: 11px 14px; border-bottom: 1px solid var(--border);
+    font-size: 13px; vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f9fafb; }
+  tr.selected td { background: #eff6ff; }
+
+  .cb { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+  }
+  .pill-pending  { background: var(--warn-bg);    color: var(--warn); }
+  .pill-ok       { background: var(--success-bg); color: var(--success); }
+  .pill-issues   { background: var(--danger-bg);  color: var(--danger); }
+
+  .sel-count {
+    font-size: 13px; font-weight: 600; color: var(--primary);
+  }
+
+  /* ── Modal ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 16px;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border-radius: 14px;
+    width: 100%; max-width: 480px;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(12px); transition: transform .2s;
+  }
+  .overlay.show .modal { transform: translateY(0); }
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; background: var(--surface2);
+    border: 1px solid var(--border); font-size: 16px; color: var(--text-2);
+  }
+  .modal-body   { padding: 20px 24px; }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px; justify-content: flex-end;
+  }
+
+  /* ── Form ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--text-2); margin-bottom: 6px; text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .form-control {
+    width: 100%; padding: 9px 12px; border-radius: 7px;
+    border: 1px solid var(--border); font-size: 14px; font-family: inherit;
+    background: var(--surface); color: var(--text);
+    transition: border-color .15s;
+  }
+  .form-control:focus { outline: none; border-color: var(--primary); }
+  .radio-group { display: flex; gap: 8px; }
+  .radio-btn {
+    flex: 1; padding: 10px; border-radius: 8px;
+    border: 2px solid var(--border); cursor: pointer;
+    text-align: center; font-size: 13px; font-weight: 600;
+    transition: all .15s; background: var(--surface);
+  }
+  .radio-btn:hover { border-color: var(--primary); }
+  .radio-btn.selected-ok     { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+  .radio-btn.selected-issues { border-color: var(--danger);  background: var(--danger-bg);  color: var(--danger); }
+
+  .info-box {
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 13px; color: #1e40af; margin-bottom: 16px;
+  }
+
+  /* ── States ── */
+  .empty-state {
+    text-align: center; padding: 48px 24px; color: var(--text-2);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p     { font-size: 14px; }
+
+  .loader {
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px; gap: 10px; color: var(--text-2);
+  }
+  .spin {
+    width: 20px; height: 20px; border: 2px solid var(--border);
+    border-top-color: var(--primary); border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--text); color: #fff;
+    padding: 12px 18px; border-radius: 9px;
+    font-size: 13px; font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(80px); transition: transform .25s;
+    z-index: 200; max-width: 320px;
+  }
+  .toast.show { transform: translateY(0); }
+  .toast.success { background: var(--success); }
+  .toast.error   { background: var(--danger); }
+
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--primary);
+    cursor: pointer; margin-bottom: 16px;
+    background: none; border: none; font-family: inherit; padding: 0;
+  }
+  .back-btn:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">📋</div>
+      <div>
+        <h1>Проверка журналов</h1>
+        <p>Лабораторные журналы · Группа 29</p>
+      </div>
+    </div>
+    <div class="user-badge" id="userBadge">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <span id="userName">Загрузка...</span>
+    </div>
+  </div>
+
+  <!-- Screen: журналы -->
+  <div id="screenJournals">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Выберите журнал для проверки</span>
+        <button class="btn btn-outline btn-sm" onclick="loadJournals()">↻ Обновить</button>
+      </div>
+      <div class="card-body">
+        <div id="journalGrid" class="journal-grid">
+          <div class="loader"><div class="spin"></div> Загрузка...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: записи журнала -->
+  <div id="screenEntries" style="display:none">
+    <button class="back-btn" onclick="showJournals()">← Все журналы</button>
+    <div class="card">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <span id="journalTitle" class="card-title"></span>
+          <div class="filter-tabs">
+            <button class="filter-tab active" onclick="setFilter('pending')" id="tab-pending">Ожидают</button>
+            <button class="filter-tab" onclick="setFilter('ok')"      id="tab-ok">Проверено</button>
+            <button class="filter-tab" onclick="setFilter('issues')"  id="tab-issues">Замечания</button>
+            <button class="filter-tab" onclick="setFilter('all')"     id="tab-all">Все</button>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <span class="sel-count" id="selCount" style="display:none"></span>
+          <button class="btn btn-primary" id="reviewBtn" onclick="openModal()" disabled>
+            ✓ Проверить выбранные
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div id="entriesContainer">
+          <div class="loader"><div class="spin"></div> Загрузка записей...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Отметить проверку</span>
+      <div class="modal-close" onclick="closeModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="info-box" id="modalInfo"></div>
+      <div class="form-group">
+        <label class="form-label">Результат проверки</label>
+        <div class="radio-group">
+          <div class="radio-btn" id="rb-ok" onclick="selectStatus('ok')">✓ Проверено</div>
+          <div class="radio-btn" id="rb-issues" onclick="selectStatus('issues')">⚠ Замечания</div>
+        </div>
+      </div>
+      <div class="form-group" id="commentGroup" style="display:none">
+        <label class="form-label">Комментарий <span style="color:var(--danger)">*</span></label>
+        <textarea class="form-control" id="commentInput" rows="3"
+          placeholder="Опишите замечания..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="confirmBtn" onclick="submitReview()" disabled>
+        Подтвердить
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Конфигурация ─────────────────────────────────────────────────────────────
+
+const WEBHOOK  = 'https://crm.testexpert-lab.ru/rest/4/t28wtmufl0xc650v/';
+const GROUP_ID = 29;
+
+const JOURNALS = [
+  {
+    id: 47,
+    name: 'Журнал контроля качества регенерации угля',
+    displayField: 'PROPERTY_214',
+    displayLabel: 'Дата регенерации',
+    reviewWho:     'PROPERTY_250',
+    reviewDate:    'PROPERTY_251',
+    reviewStatus:  'PROPERTY_252',
+    reviewComment: 'PROPERTY_253',
+  },
+  {
+    id: 48,
+    name: 'Журнал юстировки весов ЕК-3000i',
+    displayField: 'PROPERTY_231',
+    displayLabel: 'Дата',
+    reviewWho:     'PROPERTY_254',
+    reviewDate:    'PROPERTY_255',
+    reviewStatus:  'PROPERTY_256',
+    reviewComment: 'PROPERTY_257',
+  },
+  {
+    id: 49,
+    name: 'Журнал учёта выдачи и принятия оборудования',
+    displayField: 'PROPERTY_239',
+    displayLabel: 'Дата выезда',
+    reviewWho:     'PROPERTY_258',
+    reviewDate:    'PROPERTY_259',
+    reviewStatus:  'PROPERTY_260',
+    reviewComment: 'PROPERTY_261',
+  },
+];
+
+// ─── Состояние ────────────────────────────────────────────────────────────────
+
+let currentUser    = null;
+let currentJournal = null;
+let allEntries     = [];
+let filteredEntries= [];
+let selectedIds    = new Set();
+let currentFilter  = 'pending';
+let statusMap      = {};   // { 'Проверено': '72', 'Замечания': '73' }
+let chosenStatus   = null; // 'ok' | 'issues'
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+
+async function api(method, params = {}) {
+  const form = new FormData();
+  flattenAppend(form, params);
+  const r = await fetch(WEBHOOK + method + '.json', { method: 'POST', body: form });
+  return r.json();
+}
+
+function flattenAppend(form, obj, prefix = '') {
+  for (const [k, v] of Object.entries(obj)) {
+    const key = prefix ? `${prefix}[${k}]` : k;
+    if (v !== null && v !== undefined) {
+      if (typeof v === 'object' && !Array.isArray(v)) {
+        flattenAppend(form, v, key);
+      } else {
+        form.append(key, v);
+      }
+    }
+  }
+}
+
+// ─── Инициализация ────────────────────────────────────────────────────────────
+
+async function init() {
+  await loadUser();
+  await loadJournals();
+}
+
+async function loadUser() {
+  try {
+    const r = await api('profile');
+    const u = r.result || {};
+    currentUser = { id: u.ID, name: `${u.NAME} ${u.LAST_NAME}`.trim() };
+    const initials = ((u.NAME||'')[0]||'') + ((u.LAST_NAME||'')[0]||'');
+    document.getElementById('userAvatar').textContent = initials.toUpperCase();
+    document.getElementById('userName').textContent   = currentUser.name;
+  } catch(e) {
+    document.getElementById('userName').textContent = 'Ошибка авторизации';
+  }
+}
+
+async function loadJournals() {
+  const grid = document.getElementById('journalGrid');
+  grid.innerHTML = '<div class="loader"><div class="spin"></div> Загрузка...</div>';
+
+  // Для каждого журнала считаем непроверенные записи
+  const counts = await Promise.all(JOURNALS.map(j => countPending(j)));
+
+  grid.innerHTML = '';
+  JOURNALS.forEach((j, i) => {
+    const pending = counts[i];
+    const div = document.createElement('div');
+    div.className = 'journal-btn';
+    div.onclick = () => openJournal(j);
+    div.innerHTML = `
+      <div class="journal-badge">
+        <span class="badge ${pending > 0 ? 'badge-warn' : 'badge-success'}">
+          ${pending > 0 ? pending : '✓'}
+        </span>
+      </div>
+      <div class="journal-btn-name">${j.name}</div>
+      <div class="journal-btn-meta">${pending > 0 ? `Ожидают проверки: ${pending}` : 'Все проверено'}</div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+async function countPending(journal) {
+  try {
+    const r = await api('lists.element.get', {
+      IBLOCK_TYPE_ID: 'lists_socnet',
+      IBLOCK_ID: journal.id,
+      SOCNET_GROUP_ID: GROUP_ID,
+      filter: { [`=${journal.reviewStatus}`]: false },
+      select: ['ID'],
+      limit: 50,
+    });
+    return (r.result || []).length;
+  } catch { return 0; }
+}
+
+// ─── Открытие журнала ─────────────────────────────────────────────────────────
+
+async function openJournal(journal) {
+  currentJournal = journal;
+  selectedIds.clear();
+  currentFilter = 'pending';
+
+  document.getElementById('screenJournals').style.display = 'none';
+  document.getElementById('screenEntries').style.display  = 'block';
+  document.getElementById('journalTitle').textContent = journal.name;
+  updateReviewBtn();
+
+  // Загрузить варианты статуса
+  await loadStatusMap(journal);
+
+  // Загрузить записи
+  await loadEntries();
+}
+
+async function loadStatusMap(journal) {
+  try {
+    const r = await api('lists.field.get', {
+      IBLOCK_TYPE_ID:  'lists_socnet',
+      IBLOCK_ID:       journal.id,
+      SOCNET_GROUP_ID: GROUP_ID,
+      FIELD_ID:        journal.reviewStatus,
+    });
+    const field = Object.values(r.result || {})[0] || {};
+    const display = field.DISPLAY_VALUES_FORM || {};
+    statusMap = {};
+    for (const [id, val] of Object.entries(display)) {
+      statusMap[val] = id;
+    }
+  } catch(e) { statusMap = {}; }
+}
+
+async function loadEntries() {
+  const container = document.getElementById('entriesContainer');
+  container.innerHTML = '<div class="loader"><div class="spin"></div> Загрузка записей...</div>';
+
+  try {
+    const r = await api('lists.element.get', {
+      IBLOCK_TYPE_ID:  'lists_socnet',
+      IBLOCK_ID:       currentJournal.id,
+      SOCNET_GROUP_ID: GROUP_ID,
+      select: [
+        'ID', 'NAME',
+        currentJournal.displayField,
+        currentJournal.reviewStatus,
+        currentJournal.reviewWho,
+        currentJournal.reviewDate,
+        currentJournal.reviewComment,
+      ],
+      order: { DATE_CREATE: 'DESC' },
+      limit: 100,
+    });
+    allEntries = r.result || [];
+  } catch(e) {
+    allEntries = [];
+  }
+
+  applyFilter(currentFilter);
+}
+
+// ─── Фильтрация ───────────────────────────────────────────────────────────────
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${filter}`).classList.add('active');
+  selectedIds.clear();
+  updateReviewBtn();
+  applyFilter(filter);
+}
+
+function applyFilter(filter) {
+  const j = currentJournal;
+  filteredEntries = allEntries.filter(el => {
+    const status = getVal(el, j.reviewStatus);
+    if (filter === 'pending') return !status;
+    if (filter === 'ok')      return status && getStatusLabel(status) === 'ok';
+    if (filter === 'issues')  return status && getStatusLabel(status) === 'issues';
+    return true;
+  });
+  renderTable();
+}
+
+function getStatusLabel(statusId) {
+  for (const [label, id] of Object.entries(statusMap)) {
+    if (String(id) === String(statusId)) {
+      if (label.toLowerCase().includes('замечани')) return 'issues';
+      return 'ok';
+    }
+  }
+  return 'ok';
+}
+
+function getStatusName(statusId) {
+  for (const [label, id] of Object.entries(statusMap)) {
+    if (String(id) === String(statusId)) return label;
+  }
+  return '—';
+}
+
+function getVal(el, prop) {
+  const v = el[prop];
+  if (!v) return '';
+  if (Array.isArray(v)) return v[0] || '';
+  return v;
+}
+
+// ─── Таблица ──────────────────────────────────────────────────────────────────
+
+function renderTable() {
+  const container = document.getElementById('entriesContainer');
+  const j = currentJournal;
+
+  if (!filteredEntries.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">✓</div>
+        <p>${currentFilter === 'pending' ? 'Нет записей, ожидающих проверки' : 'Нет записей'}</p>
+      </div>`;
+    return;
+  }
+
+  const isPending = (currentFilter === 'pending' || currentFilter === 'all');
+
+  let html = `<table>
+    <thead><tr>
+      ${isPending ? '<th><input type="checkbox" class="cb" id="cbAll" onchange="toggleAll(this)"></th>' : '<th></th>'}
+      <th>Название</th>
+      <th>${j.displayLabel}</th>
+      <th>Статус</th>
+      <th>Проверил</th>
+      <th>Дата проверки</th>
+    </tr></thead><tbody>`;
+
+  for (const el of filteredEntries) {
+    const statusId  = getVal(el, j.reviewStatus);
+    const statusLbl = statusId ? getStatusLabel(statusId) : 'pending';
+    const checked   = selectedIds.has(el.ID) ? 'checked' : '';
+    const rowCls    = selectedIds.has(el.ID) ? 'selected' : '';
+    const displayVal = getVal(el, j.displayField);
+    const reviewer   = getVal(el, j.reviewWho);
+    const reviewDate = getVal(el, j.reviewDate);
+
+    let pillHtml = '<span class="status-pill pill-pending">⏳ Ожидает</span>';
+    if (statusLbl === 'ok')     pillHtml = '<span class="status-pill pill-ok">✓ Проверено</span>';
+    if (statusLbl === 'issues') pillHtml = '<span class="status-pill pill-issues">⚠ Замечания</span>';
+
+    html += `<tr class="${rowCls}">
+      <td>${isPending && statusLbl === 'pending'
+        ? `<input type="checkbox" class="cb" ${checked} onchange="toggleRow('${el.ID}', this)">`
+        : ''}</td>
+      <td>${el.NAME || '—'}</td>
+      <td>${displayVal || '—'}</td>
+      <td>${pillHtml}</td>
+      <td>${reviewer || '—'}</td>
+      <td>${reviewDate || '—'}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function toggleRow(id, cb) {
+  if (cb.checked) selectedIds.add(id);
+  else            selectedIds.delete(id);
+  updateReviewBtn();
+  // Обновить строку
+  const row = cb.closest('tr');
+  if (cb.checked) row.classList.add('selected');
+  else            row.classList.remove('selected');
+  // Обновить «выбрать все»
+  const cbAll = document.getElementById('cbAll');
+  if (cbAll) {
+    const pending = filteredEntries.filter(e => !getVal(e, currentJournal.reviewStatus));
+    cbAll.checked = selectedIds.size === pending.length && pending.length > 0;
+  }
+}
+
+function toggleAll(cb) {
+  const pending = filteredEntries.filter(e => !getVal(e, currentJournal.reviewStatus));
+  if (cb.checked) pending.forEach(e => selectedIds.add(e.ID));
+  else            selectedIds.clear();
+  updateReviewBtn();
+  renderTable();
+  if (cb.checked) document.getElementById('cbAll').checked = true;
+}
+
+function updateReviewBtn() {
+  const btn = document.getElementById('reviewBtn');
+  const cnt = document.getElementById('selCount');
+  const n   = selectedIds.size;
+  btn.disabled = n === 0;
+  if (n > 0) {
+    cnt.style.display = 'inline';
+    cnt.textContent = `Выбрано: ${n}`;
+  } else {
+    cnt.style.display = 'none';
+  }
+}
+
+// ─── Навигация ────────────────────────────────────────────────────────────────
+
+function showJournals() {
+  document.getElementById('screenEntries').style.display  = 'none';
+  document.getElementById('screenJournals').style.display = 'block';
+  loadJournals();
+}
+
+// ─── Модалка ─────────────────────────────────────────────────────────────────
+
+function openModal() {
+  if (!selectedIds.size) return;
+  chosenStatus = null;
+  document.getElementById('rb-ok').className     = 'radio-btn';
+  document.getElementById('rb-issues').className = 'radio-btn';
+  document.getElementById('commentInput').value  = '';
+  document.getElementById('commentGroup').style.display = 'none';
+  document.getElementById('confirmBtn').disabled = true;
+  document.getElementById('modalInfo').textContent =
+    `Будет отмечено записей: ${selectedIds.size}. Проверяющий: ${currentUser?.name || '—'}`;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function selectStatus(s) {
+  chosenStatus = s;
+  document.getElementById('rb-ok').className     = 'radio-btn' + (s==='ok'     ? ' selected-ok'     : '');
+  document.getElementById('rb-issues').className = 'radio-btn' + (s==='issues' ? ' selected-issues'  : '');
+  document.getElementById('commentGroup').style.display = s === 'issues' ? 'block' : 'none';
+  document.getElementById('confirmBtn').disabled = false;
+}
+
+// ─── Сохранение проверки ─────────────────────────────────────────────────────
+
+async function submitReview() {
+  if (!chosenStatus) return;
+  const comment = document.getElementById('commentInput').value.trim();
+  if (chosenStatus === 'issues' && !comment) {
+    showToast('Введите комментарий при замечаниях', 'error');
+    return;
+  }
+
+  // Найти ID статуса
+  const statusLabel = chosenStatus === 'ok' ? 'Проверено' : 'Замечания';
+  const statusId    = statusMap[statusLabel];
+  if (!statusId) {
+    showToast('Ошибка: не найден ID статуса', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Сохраняю...';
+
+  const today = new Date().toLocaleDateString('ru-RU');
+  const j     = currentJournal;
+  let ok = 0, fail = 0;
+
+  for (const id of selectedIds) {
+    const fields = {
+      ID:                  id,
+      [j.reviewWho]:       currentUser?.name || '—',
+      [j.reviewDate]:      today,
+      [j.reviewStatus]:    statusId,
+    };
+    if (comment) fields[j.reviewComment] = comment;
+
+    try {
+      const r = await api('lists.element.update', {
+        IBLOCK_TYPE_ID:  'lists_socnet',
+        IBLOCK_ID:       j.id,
+        SOCNET_GROUP_ID: GROUP_ID,
+        ELEMENT_ID:      id,
+        FIELDS:          fields,
+      });
+      if (r.result) ok++; else fail++;
+    } catch { fail++; }
+  }
+
+  closeModal();
+  selectedIds.clear();
+  updateReviewBtn();
+  await loadEntries();
+
+  if (fail === 0) showToast(`✓ Проверено записей: ${ok}`, 'success');
+  else            showToast(`Сохранено: ${ok}, ошибок: ${fail}`, 'error');
+
+  btn.disabled = false;
+  btn.textContent = 'Подтвердить';
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ─── Старт ────────────────────────────────────────────────────────────────────
+
+init();
+</script>
+</body>
+</html>
