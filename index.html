@@ -628,7 +628,12 @@ function getStatusName(statusId) {
 function getVal(el, prop) {
   const v = el[prop];
   if (!v) return '';
-  if (Array.isArray(v)) return v[0] || '';
+  if (Array.isArray(v)) {
+    const first = v[0];
+    if (first && typeof first === 'object') return first.Value || first.ValueEnum || JSON.stringify(first);
+    return first || '';
+  }
+  if (typeof v === 'object') return v.Value || v.ValueEnum || JSON.stringify(v);
   return v;
 }
 
@@ -801,7 +806,7 @@ async function submitReview() {
         IBLOCK_TYPE_ID:  'lists_socnet',
         IBLOCK_ID:       j.id,
         SOCNET_GROUP_ID: GROUP_ID,
-        ELEMENT_ID:      id,
+        ELEMENT_ID:      String(id),
         FIELDS:          fields,
       });
       if (r.result) ok++; else fail++;
