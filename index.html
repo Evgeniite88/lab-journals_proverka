@@ -827,6 +827,8 @@ async function submitReview() {
         fields[prop] = val;
       }
     }
+    // Передаём NAME (обязательное системное поле)
+    fields['NAME'] = el['NAME'] || '';
     // Перезаписываем поля проверки
     fields[j.reviewWho]    = currentUser?.name || '—';
     fields[j.reviewDate]   = today;
