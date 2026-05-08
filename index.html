@@ -423,7 +423,7 @@ const JOURNALS = [
     reviewDate:    'PROPERTY_255',
     reviewStatus:  'PROPERTY_256',
     reviewComment: 'PROPERTY_257',
-    requiredFields: { 'PROPERTY_231': 'Дата', 'PROPERTY_237': 'Вывод', 'PROPERTY_238': 'Ответственный' },
+    requiredFields: { 'PROPERTY_231': 'Дата', 'PROPERTY_232': 'Наименование оборудования', 'PROPERTY_237': 'Вывод', 'PROPERTY_238': 'Ответственный' },
   },
   {
     id: 49,
@@ -814,28 +814,24 @@ async function submitReview() {
     });
     const el = (fullEl.result || [])[0] || entryMap[id] || {};
 
-    const fields = {
-      ID:                  id,
-      [j.reviewWho]:       currentUser?.name || '—',
-      [j.reviewDate]:      today,
-      [j.reviewStatus]:    statusId,
-    };
-    if (comment) fields[j.reviewComment] = comment;
-    // Передаём все обязательные поля из текущей записи
-    for (const [prop] of Object.entries(j.requiredFields || {})) {
-      const raw = el[prop];
-      if (raw) {
-        // Для полей-списков (L) Битрикс хранит {ID: value} — берём ключ как ID варианта
-        if (typeof raw === 'object' && !Array.isArray(raw)) {
-          const keys = Object.keys(raw);
-          if (keys.length) fields[prop] = keys[0];
-        } else if (Array.isArray(raw) && raw.length) {
-          fields[prop] = raw[0];
-        } else {
-          fields[prop] = raw;
-        }
+    // Берём все поля записи и передаём как есть, заменяя только поля проверки
+    const fields = { ID: id };
+    for (const [prop, val] of Object.entries(el)) {
+      if (['ID','NAME','IBLOCK_ID','IBLOCK_SECTION_ID','DATE_CREATE','TIMESTAMP_X','CREATED_BY','MODIFIED_BY'].includes(prop)) continue;
+      if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+        const keys = Object.keys(val);
+        if (keys.length) fields[prop] = keys[0];
+      } else if (Array.isArray(val) && val.length) {
+        fields[prop] = val[0];
+      } else if (val) {
+        fields[prop] = val;
       }
     }
+    // Перезаписываем поля проверки
+    fields[j.reviewWho]    = currentUser?.name || '—';
+    fields[j.reviewDate]   = today;
+    fields[j.reviewStatus] = statusId;
+    if (comment) fields[j.reviewComment] = comment;
 
     try {
       const r = await api('lists.element.update', {
