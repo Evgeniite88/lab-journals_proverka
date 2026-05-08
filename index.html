@@ -412,6 +412,7 @@ const JOURNALS = [
     reviewDate:    'PROPERTY_251',
     reviewStatus:  'PROPERTY_252',
     reviewComment: 'PROPERTY_253',
+    requiredFields: { 'PROPERTY_230': 'Исполнитель' },  // обязательные поля журнала
   },
   {
     id: 48,
@@ -422,6 +423,7 @@ const JOURNALS = [
     reviewDate:    'PROPERTY_255',
     reviewStatus:  'PROPERTY_256',
     reviewComment: 'PROPERTY_257',
+    requiredFields: { 'PROPERTY_238': 'Ответственный' },  // обязательные поля журнала
   },
   {
     id: 49,
@@ -432,6 +434,7 @@ const JOURNALS = [
     reviewDate:    'PROPERTY_259',
     reviewStatus:  'PROPERTY_260',
     reviewComment: 'PROPERTY_261',
+    requiredFields: { 'PROPERTY_240': '№ задания', 'PROPERTY_242': 'Оборудование', 'PROPERTY_243': 'ФИО специалиста' },
   },
 ];
 
@@ -562,18 +565,20 @@ async function loadEntries() {
   container.innerHTML = '<div class="loader"><div class="spin"></div> Загрузка записей...</div>';
 
   try {
+    const selectFields = [
+      'ID', 'NAME',
+      currentJournal.displayField,
+      currentJournal.reviewStatus,
+      currentJournal.reviewWho,
+      currentJournal.reviewDate,
+      currentJournal.reviewComment,
+      ...Object.keys(currentJournal.requiredFields || {}),
+    ];
     const r = await api('lists.element.get', {
       IBLOCK_TYPE_ID:  'lists_socnet',
       IBLOCK_ID:       currentJournal.id,
       SOCNET_GROUP_ID: GROUP_ID,
-      select: [
-        'ID', 'NAME',
-        currentJournal.displayField,
-        currentJournal.reviewStatus,
-        currentJournal.reviewWho,
-        currentJournal.reviewDate,
-        currentJournal.reviewComment,
-      ],
+      select: selectFields,
       order: { DATE_CREATE: 'DESC' },
       limit: 100,
     });
@@ -628,12 +633,16 @@ function getStatusName(statusId) {
 function getVal(el, prop) {
   const v = el[prop];
   if (!v) return '';
+  // Битрикс возвращает свойства как объект {ID: "value"} — берём первое значение
+  if (typeof v === 'object' && !Array.isArray(v)) {
+    const vals = Object.values(v);
+    return vals[0] || '';
+  }
   if (Array.isArray(v)) {
     const first = v[0];
-    if (first && typeof first === 'object') return first.Value || first.ValueEnum || JSON.stringify(first);
+    if (first && typeof first === 'object') return Object.values(first)[0] || '';
     return first || '';
   }
-  if (typeof v === 'object') return v.Value || v.ValueEnum || JSON.stringify(v);
   return v;
 }
 
@@ -792,7 +801,11 @@ async function submitReview() {
   const j     = currentJournal;
   let ok = 0, fail = 0;
 
+  const entryMap = {};
+  for (const el of allEntries) entryMap[el.ID] = el;
+
   for (const id of selectedIds) {
+    const el = entryMap[id] || {};
     const fields = {
       ID:                  id,
       [j.reviewWho]:       currentUser?.name || '—',
@@ -800,6 +813,10 @@ async function submitReview() {
       [j.reviewStatus]:    statusId,
     };
     if (comment) fields[j.reviewComment] = comment;
+    for (const [prop] of Object.entries(j.requiredFields || {})) {
+      const val = getVal(el, prop);
+      if (val) fields[prop] = val;
+    }
 
     try {
       const r = await api('lists.element.update', {
@@ -809,8 +826,9 @@ async function submitReview() {
         ELEMENT_ID:      String(id),
         FIELDS:          fields,
       });
-      if (r.result) ok++; else fail++;
-    } catch { fail++; }
+      if (r.result) ok++;
+      else { console.error('ERR id='+id, JSON.stringify(r)); fail++; }
+    } catch(e) { console.error('EXC id='+id, e); fail++; }
   }
 
   closeModal();
