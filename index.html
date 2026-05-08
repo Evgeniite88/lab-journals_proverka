@@ -805,7 +805,15 @@ async function submitReview() {
   for (const el of allEntries) entryMap[el.ID] = el;
 
   for (const id of selectedIds) {
-    const el = entryMap[id] || {};
+    // Читаем полную запись чтобы получить все поля включая списки
+    const fullEl = await api('lists.element.get', {
+      IBLOCK_TYPE_ID:  'lists_socnet',
+      IBLOCK_ID:       j.id,
+      SOCNET_GROUP_ID: GROUP_ID,
+      filter: { 'ID': id },
+    });
+    const el = (fullEl.result || [])[0] || entryMap[id] || {};
+
     const fields = {
       ID:                  id,
       [j.reviewWho]:       currentUser?.name || '—',
@@ -813,9 +821,20 @@ async function submitReview() {
       [j.reviewStatus]:    statusId,
     };
     if (comment) fields[j.reviewComment] = comment;
+    // Передаём все обязательные поля из текущей записи
     for (const [prop] of Object.entries(j.requiredFields || {})) {
-      const val = getVal(el, prop);
-      if (val) fields[prop] = val;
+      const raw = el[prop];
+      if (raw) {
+        // Для полей-списков (L) Битрикс хранит {ID: value} — берём ключ как ID варианта
+        if (typeof raw === 'object' && !Array.isArray(raw)) {
+          const keys = Object.keys(raw);
+          if (keys.length) fields[prop] = keys[0];
+        } else if (Array.isArray(raw) && raw.length) {
+          fields[prop] = raw[0];
+        } else {
+          fields[prop] = raw;
+        }
+      }
     }
 
     try {
