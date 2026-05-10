@@ -413,6 +413,7 @@ const JOURNALS = [
     reviewStatus:  'PROPERTY_252',
     reviewComment: 'PROPERTY_253',
     requiredFields: { 'PROPERTY_214': 'Дата регенерации', 'PROPERTY_229': 'Результат', 'PROPERTY_230': 'Исполнитель' },
+    listFields: ['PROPERTY_229', 'PROPERTY_252'],  // поля типа Список
   },
   {
     id: 48,
@@ -424,6 +425,7 @@ const JOURNALS = [
     reviewStatus:  'PROPERTY_256',
     reviewComment: 'PROPERTY_257',
     requiredFields: { 'PROPERTY_231': 'Дата', 'PROPERTY_232': 'Наименование оборудования', 'PROPERTY_237': 'Вывод', 'PROPERTY_238': 'Ответственный' },
+    listFields: ['PROPERTY_237', 'PROPERTY_256'],  // поля типа Список
   },
   {
     id: 49,
@@ -435,6 +437,7 @@ const JOURNALS = [
     reviewStatus:  'PROPERTY_260',
     reviewComment: 'PROPERTY_261',
     requiredFields: { 'PROPERTY_239': 'Дата выезда', 'PROPERTY_240': '№ задания', 'PROPERTY_242': 'Оборудование', 'PROPERTY_243': 'ФИО специалиста' },
+    listFields: ['PROPERTY_241', 'PROPERTY_246', 'PROPERTY_260'],  // поля типа Список
   },
 ];
 
@@ -816,11 +819,20 @@ async function submitReview() {
 
     // Берём все поля записи и передаём как есть, заменяя только поля проверки
     const fields = { ID: id };
+    // Определяем какие поля являются списками (L-тип) по конфигу журнала
+    const listFields = j.listFields || [];
     for (const [prop, val] of Object.entries(el)) {
       if (['ID','NAME','IBLOCK_ID','IBLOCK_SECTION_ID','DATE_CREATE','TIMESTAMP_X','CREATED_BY','MODIFIED_BY'].includes(prop)) continue;
       if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-        const keys = Object.keys(val);
-        if (keys.length) fields[prop] = keys[0];
+        const keys   = Object.keys(val);
+        const values = Object.values(val);
+        if (!keys.length) continue;
+        // Для полей-списков передаём ключ (ID варианта), для остальных — значение
+        if (listFields.includes(prop)) {
+          fields[prop] = keys[0];
+        } else {
+          fields[prop] = values[0] || keys[0];
+        }
       } else if (Array.isArray(val) && val.length) {
         fields[prop] = val[0];
       } else if (val) {
